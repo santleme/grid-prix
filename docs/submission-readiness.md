@@ -1,6 +1,6 @@
 # GRID PRIX — Hackathon Submission Readiness
 
-**Last checked:** October 17, 2026 (America/Sao_Paulo)
+**Last checked:** October 17, 2026, 20:23 BRT (23:23 UTC)
 
 This page distinguishes verified repository evidence from platform actions that
 have not completed. Historical experiment data is not live activity.
@@ -10,7 +10,7 @@ have not completed. Historical experiment data is not live activity.
 | Item | Verified state |
 | --- | --- |
 | Public source repository | [github.com/santleme/grid-prix](https://github.com/santleme/grid-prix) — GitHub API verified `public`; default branch `master`. |
-| CreateOS application URL | [production-grid-prix-live.tyzo.nodeops.app](https://production-grid-prix-live.tyzo.nodeops.app) — CreateOS CLI marked deployment `306a8a93-7b60-403a-838a-e3e9eb3f5450` as deployed and promoted it to Production, but live HTTPS checks of `/` and `/api/evolve/status` returned **HTTP 503 (nginx)** at 2026-10-17 23:15 UTC. This is not a working/verified public app URL; do not submit it as live. |
+| CreateOS application URL | [production-grid-prix-live.tyzo.nodeops.app](https://production-grid-prix-live.tyzo.nodeops.app) — CreateOS CLI marked deployment `306a8a93-7b60-403a-838a-e3e9eb3f5450` as deployed and promoted it to Production, but repeated live HTTPS checks of `/` and `/api/evolve/status` returned **HTTP 503 (nginx)** at 2026-10-17 23:23 UTC. This is not a working/verified public app URL; do not submit it as live. |
 | Stripe Projects | The read-only `stripe projects status --json` response reports project `grid-prix`, the CreateOS provider linked and complete, and both `createos-plan` and `createos-project` as Free and complete. Credential values were redacted by the CLI and were not copied here. |
 | Screenshot evidence | [Desktop](../artifacts/screenshots/grid-prix-desktop.png), [mobile](../artifacts/screenshots/grid-prix-mobile.png), and [race view](../artifacts/screenshots/grid-prix-race-live.png). These are local UI captures, not remote deployment or AI execution evidence. |
 
@@ -27,6 +27,7 @@ The following checks passed against the source tree on this date:
 - `npm test` — 18 tests passed.
 - `npm run test:python` — 31 tests passed, including the production web adapter.
 - `npm run build` — TypeScript check and Vite production build passed.
+- `npm run build:production` — production build and static-asset packaging passed.
 - `git diff --check` — passed.
 - Local production smoke test — frontend HTML and `/api/evolve/status` both
   returned HTTP 200; no model or Sandbox calls were made.
