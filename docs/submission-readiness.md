@@ -23,9 +23,11 @@ and live smoke test are recorded. Do not advertise a placeholder as a live URL.
 The following checks passed against the source tree on this date:
 
 - `npm test` — 18 tests passed.
-- `npm run test:python` — 28 tests passed.
+- `npm run test:python` — 30 tests passed, including the production web adapter.
 - `npm run build` — TypeScript check and Vite production build passed.
 - `git diff --check` — passed.
+- Local production smoke test — frontend HTML and `/api/evolve/status` both
+  returned HTTP 200; no model or Sandbox calls were made.
 - A targeted scanner checked three reachable Git commits and the publishable
   worktree for Stripe, Groq, GitHub, AWS, private-key, and credential-assignment
   patterns. No match was found. `.env` and `.projects/` were explicitly
@@ -87,6 +89,14 @@ connection retry did not yield an application project ID. The current Stripe
 Projects integration confirms the Free Sandbox resource only. No additional
 hosting resource, paid service, public application URL, or production
 environment variable was provisioned or verified in this check.
+
+The repository now includes a multi-stage `Dockerfile` and production Python
+web adapter that serve the built UI and backend status API from one origin.
+Public evolution POSTs are intentionally denied to avoid unauthenticated
+provider quota/Sandbox use. The local production smoke test passed, but no
+container build or public deployment has been run yet; Docker is unavailable
+in this WSL environment. Public LLM/Sandbox evolution therefore remains
+unconfigured and unverified.
 
 Once CreateOS control-plane access is available, deploy the frontend and
 backend from the published source, set secrets using CreateOS's environment

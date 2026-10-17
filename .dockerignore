@@ -1,0 +1,14 @@
+.env
+.env.*
+.projects/
+.omx/
+.venv/
+node_modules/
+dist/
+.grid_prix/
+.git/
+artifacts/screenshots/
+tests/
+.agents/
+.claude/
+.cursor/

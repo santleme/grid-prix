@@ -86,6 +86,15 @@ npm run test:python
 Live LLM/CreateOS calls require valid credentials and are intentionally not
 simulated by tests. No paid services are provisioned by the application.
 
+## Production container
+
+`Dockerfile` builds the Vite UI and serves it with the Python backend on the
+same HTTP origin. In a hosted deployment, GET status/history endpoints are
+read-only and public evolution POSTs remain denied; this prevents an
+unauthenticated visitor from consuming model quota or Sandbox executions.
+Configure provider credentials only through the host's secret environment
+manager. Do not enable anonymous evolution requests.
+
 ## Hackathon delivery status
 
 This repository contains the race simulator, optional evolution backend, and
