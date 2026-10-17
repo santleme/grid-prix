@@ -7,6 +7,8 @@ evolution service that generates Python candidates, executes them in real
 CreateOS Sandboxes, and adopts a candidate only when it beats the baseline on
 held-out telemetry.
 
+**Public repository:** [github.com/santleme/grid-prix](https://github.com/santleme/grid-prix)
+
 ## Screenshots
 
 | Desktop | Mobile |

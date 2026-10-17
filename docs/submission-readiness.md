@@ -9,7 +9,7 @@ have not completed. Historical experiment data is not live activity.
 
 | Item | Verified state |
 | --- | --- |
-| Public source repository | [github.com/santleme/grid-prix](https://github.com/santleme/grid-prix) — created as a public repository. Verify the pushed commit and default branch after publication. |
+| Public source repository | [github.com/santleme/grid-prix](https://github.com/santleme/grid-prix) — GitHub API verified `public`, default branch `master`, at commit [`40127c9`](https://github.com/santleme/grid-prix/commit/40127c9cebddedc828c1d092b266430fc6c23098). |
 | CreateOS application URL | **Not deployed / no URL verified.** The authenticated CreateOS CLI reports the Free plan, but its project-list request cannot currently resolve `api-createos.nodeops.network` in the shell runtime. The CreateOS Stripe Projects resource is the Sandbox integration; it is not proof of an application deployment. |
 | Stripe Projects | The read-only `stripe projects status --json` response reports project `grid-prix`, the CreateOS provider linked and complete, and both `createos-plan` and `createos-project` as Free and complete. Credential values were redacted by the CLI and were not copied here. |
 | Screenshot evidence | [Desktop](../artifacts/screenshots/grid-prix-desktop.png), [mobile](../artifacts/screenshots/grid-prix-mobile.png), and [race view](../artifacts/screenshots/grid-prix-race-live.png). These are local UI captures, not remote deployment or AI execution evidence. |
