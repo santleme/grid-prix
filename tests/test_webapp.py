@@ -11,7 +11,7 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from unittest.mock import patch
 
-from grid_prix.webapp import ProductionHandler
+from grid_prix.webapp import ProductionHandler, app as production_app
 
 
 class ProductionWebAppTests(unittest.TestCase):
@@ -50,6 +50,28 @@ class ProductionWebAppTests(unittest.TestCase):
             with self.assertRaises(HTTPError) as error:
                 urlopen(request)
         self.assertEqual(error.exception.code, 403)
+
+    def test_wsgi_runtime_serves_ui_and_read_only_backend(self) -> None:
+        def call(path: str, method: str = "GET") -> tuple[str, bytes]:
+            status: list[str] = []
+
+            def start_response(value: str, _headers: list[tuple[str, str]]) -> None:
+                status.append(value)
+
+            body = b"".join(production_app(
+                {"PATH_INFO": path, "REQUEST_METHOD": method}, start_response
+            ))
+            return status[0], body
+
+        with patch.dict(os.environ, {"GRID_PRIX_PUBLIC_READ_ONLY": "1"}, clear=False):
+            status, body = call("/")
+            self.assertEqual(status, "200 OK")
+            self.assertIn(b"GRID PRIX", body)
+            status, body = call("/api/evolve/status")
+            self.assertEqual(status, "200 OK")
+            self.assertFalse(json.loads(body)["available"])
+            status, _ = call("/api/evolve", method="POST")
+            self.assertEqual(status, "403 Forbidden")
 
 
 if __name__ == "__main__":

@@ -3,15 +3,78 @@
 from __future__ import annotations
 
 import mimetypes
+import json
 import os
+from collections.abc import Callable
 from http import HTTPStatus
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
-from grid_prix.evolve import EvolutionHandler
+from grid_prix.evolve import EvolutionHandler, _policy_history_view, readiness
 
 STATIC_ROOT = Path(__file__).resolve().parent / "static"
+
+
+def app(
+    environ: dict[str, object],
+    start_response: Callable[[str, list[tuple[str, str]]], object],
+) -> list[bytes]:
+    """WSGI entry point for CreateOS's Python application runtime."""
+    method = str(environ.get("REQUEST_METHOD", "GET"))
+    route = unquote(str(environ.get("PATH_INFO", "/")))
+    if route.startswith("/api/"):
+        if method != "GET" or os.getenv("GRID_PRIX_PUBLIC_READ_ONLY") != "1":
+            body = b'{"error":"Public evolution is disabled"}'
+            start_response("403 Forbidden", [
+                ("Content-Type", "application/json; charset=utf-8"),
+                ("Content-Length", str(len(body))),
+                ("Cache-Control", "no-store"),
+            ])
+            return [body]
+        if route == "/api/evolve/history":
+            payload = _policy_history_view()
+        elif route in {"/api/status", "/api/evolve/status"}:
+            payload = readiness()
+        else:
+            payload = None
+        if payload is None:
+            body = b'{"error":"Not found"}'
+            status = "404 Not Found"
+        else:
+            body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+            status = "200 OK"
+        start_response(status, [
+            ("Content-Type", "application/json; charset=utf-8"),
+            ("Content-Length", str(len(body))),
+            ("Cache-Control", "no-store"),
+        ])
+        return [body]
+
+    if route == "/":
+        route = "/index.html"
+    candidate = (STATIC_ROOT / route.lstrip("/")).resolve()
+    try:
+        candidate.relative_to(STATIC_ROOT.resolve())
+    except ValueError:
+        body = b"Not found"
+        start_response("404 Not Found", [("Content-Length", str(len(body)))])
+        return [body]
+    if not candidate.is_file():
+        candidate = STATIC_ROOT / "index.html"
+    if not candidate.is_file():
+        body = b"Frontend build is unavailable"
+        start_response("503 Service Unavailable", [("Content-Length", str(len(body)))])
+        return [body]
+    body = candidate.read_bytes()
+    content_type = mimetypes.guess_type(candidate.name)[0] or "application/octet-stream"
+    start_response("200 OK", [
+        ("Content-Type", content_type),
+        ("Content-Length", str(len(body))),
+        ("X-Content-Type-Options", "nosniff"),
+        ("Cache-Control", "no-cache" if candidate.name == "index.html" else "public, max-age=31536000, immutable"),
+    ])
+    return [body]
 
 
 class ProductionHandler(EvolutionHandler):
