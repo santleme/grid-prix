@@ -8,6 +8,12 @@ __pycache__/
 .omx/
 .projects/
 .createos.json
+.agents/
+.claude/
+.cursor/
+AGENTS.md
+CLAUDE.md
+.cursorignore
 .env
 .env.*
 !.env.example

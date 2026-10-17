@@ -10,7 +10,7 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY grid_prix ./grid_prix
-COPY --from=frontend /app/dist ./dist
+COPY --from=frontend /app/dist ./grid_prix/static
 ENV GRID_PRIX_PUBLIC_READ_ONLY=1 PYTHONDONTWRITEBYTECODE=1
 EXPOSE 8080
 CMD ["python3", "-m", "grid_prix.webapp"]

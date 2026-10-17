@@ -11,7 +11,7 @@ from urllib.parse import unquote, urlsplit
 
 from grid_prix.evolve import EvolutionHandler
 
-STATIC_ROOT = Path(__file__).resolve().parent.parent / "dist"
+STATIC_ROOT = Path(__file__).resolve().parent / "static"
 
 
 class ProductionHandler(EvolutionHandler):

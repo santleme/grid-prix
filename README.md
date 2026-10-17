@@ -93,7 +93,9 @@ same HTTP origin. In a hosted deployment, GET status/history endpoints are
 read-only and public evolution POSTs remain denied; this prevents an
 unauthenticated visitor from consuming model quota or Sandbox executions.
 Configure provider credentials only through the host's secret environment
-manager. Do not enable anonymous evolution requests.
+manager. The CreateOS upload package includes the compiled UI in
+`grid_prix/static`; after changing frontend source, refresh it with
+`npm run build:production`. Do not enable anonymous evolution requests.
 
 ## Hackathon delivery status
 
