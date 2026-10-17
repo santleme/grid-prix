@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
+    "dev:evolution": "./.venv/bin/python -m grid_prix.evolve",
     "build": "tsc --noEmit && vite build",
     "test": "node --test tests/simulation/*.test.mjs economy/*.test.mjs",
     "test:python": "python3 -m unittest discover -s tests -p 'test_*.py'"
