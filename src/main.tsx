@@ -36,6 +36,14 @@ function Championship() {
       .catch(() => {
         if (active) setEvolution((current) => ({ ...current, available: false, summary: "Start the local evolution service and configure LLM + CreateOS credentials." }));
       });
+    fetch("/api/evolve/history")
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error(`Evolution history ${response.status}`)))
+      .then((history) => {
+        if (active && Array.isArray(history.agents) && history.agents.length > 0) {
+          setEvolution((current) => ({ ...current, ...history, available: current.available }));
+        }
+      })
+      .catch(() => { /* Saved policy history is optional until the local API is running. */ });
     return () => { active = false; };
   }, []);
 
@@ -65,7 +73,7 @@ function Championship() {
 
   const evolve = async () => {
     if (!evolution.available) return;
-    setEvolution((current) => ({ ...current, status: "running", summary: "Submitting telemetry for agent analysis…", log: [...current.log, "Evolution request started"] }));
+    setEvolution((current) => ({ ...current, status: "running", summary: "Evolution request in progress. Drivers analyze telemetry, generate policies, test them in CreateOS Sandbox, then report held-out results.", log: [...current.log, "Evolution request started"] }));
     try {
       const response = await fetch("/api/evolve", {
         method: "POST",

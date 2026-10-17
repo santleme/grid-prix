@@ -51,6 +51,48 @@ export interface EvolutionView {
   afterScore?: number;
   source?: string;
   log: string[];
+  agents?: EvolutionAgentView[];
+  provider?: string;
+  model?: string;
+  sequential?: boolean;
+  sandboxExecutions?: number;
+  usage?: InferenceUsage;
+}
+
+export interface InferenceUsage {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  requests?: number;
+  attempts?: number;
+}
+
+export interface PolicyRevision {
+  generation?: number;
+  name?: string;
+  candidateName?: string;
+  source?: string;
+  beforeScore?: number;
+  afterScore?: number;
+  validationScore?: number;
+  accepted?: boolean;
+  createdAt?: string;
+  provider?: string;
+  model?: string;
+  usage?: InferenceUsage;
+}
+
+export interface EvolutionAgentView {
+  driverId: string;
+  driverName: string;
+  status: string;
+  candidateName?: string;
+  beforeScore?: number;
+  afterScore?: number;
+  accepted?: boolean;
+  currentSource?: string;
+  history: PolicyRevision[];
+  usage?: InferenceUsage;
 }
 
 export interface TeamView {

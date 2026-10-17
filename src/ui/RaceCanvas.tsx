@@ -75,7 +75,7 @@ export function RaceCanvas({
         </div>
       )}
       <div className="track-coordinates" aria-hidden="true">
-        <span>GRID / 01</span>
+        <span>NEON CIRCUIT</span>
         <span>SECTOR 01 · 02 · 03</span>
       </div>
     </div>
@@ -89,52 +89,80 @@ function drawTrack(
   selectedDriverId?: string,
 ) {
   context.clearRect(0, 0, WIDTH, HEIGHT);
-  context.fillStyle = "#0b1015";
+  context.fillStyle = "#f6f8f7";
   context.fillRect(0, 0, WIDTH, HEIGHT);
 
   context.save();
-  context.strokeStyle = "rgba(173, 201, 215, 0.055)";
+  context.strokeStyle = "rgba(58, 89, 82, 0.035)";
   context.lineWidth = 1;
-  for (let x = 0; x <= WIDTH; x += 40) {
+  for (let i = 0; i < 4; i += 1) {
     context.beginPath();
-    context.moveTo(x, 0);
-    context.lineTo(x, HEIGHT);
-    context.stroke();
-  }
-  for (let y = 0; y <= HEIGHT; y += 40) {
-    context.beginPath();
-    context.moveTo(0, y);
-    context.lineTo(WIDTH, y);
+    context.ellipse(WIDTH * .5, HEIGHT * .52, 330 + i * 65, 150 + i * 42, -.04, 0, Math.PI * 2);
     context.stroke();
   }
   context.restore();
 
   const track = new Path2D();
   if (points.length) {
-    track.moveTo(clamp(points[0].x) * WIDTH, clamp(points[0].y) * HEIGHT);
-    for (const point of points.slice(1)) track.lineTo(clamp(point.x) * WIDTH, clamp(point.y) * HEIGHT);
+    const canvasPoints = points.map((point) => ({ x: clamp(point.x) * WIDTH, y: clamp(point.y) * HEIGHT }));
+    track.moveTo(canvasPoints[0].x, canvasPoints[0].y);
+    for (const point of canvasPoints.slice(1)) track.lineTo(point.x, point.y);
     track.closePath();
   }
 
   context.save();
-  context.strokeStyle = "rgba(29, 244, 193, 0.12)";
-  context.lineWidth = 66;
+  context.translate(0, 14);
+  context.strokeStyle = "rgba(89, 106, 100, .24)";
+  context.lineWidth = 74;
   context.lineJoin = "round";
+  context.lineCap = "round";
+  context.shadowColor = "rgba(42, 59, 54, .2)";
+  context.shadowBlur = 14;
+  context.shadowOffsetY = 3;
   context.stroke(track);
-  context.strokeStyle = "#26343c";
-  context.lineWidth = 58;
+  context.restore();
+
+  context.save();
+  context.strokeStyle = "rgba(44, 71, 67, 0.17)";
+  context.lineWidth = 80;
+  context.lineJoin = "round";
+  context.lineCap = "round";
+  context.shadowColor = "rgba(31, 52, 49, .24)";
+  context.shadowBlur = 28;
+  context.shadowOffsetY = 13;
   context.stroke(track);
-  context.strokeStyle = "rgba(207, 220, 226, 0.25)";
-  context.lineWidth = 2;
+  context.shadowColor = "transparent";
+  context.shadowBlur = 0;
+  context.shadowOffsetY = 0;
+  const roadEdge = context.createLinearGradient(0, 110, 0, 700);
+  roadEdge.addColorStop(0, "#fafcfb");
+  roadEdge.addColorStop(.2, "#dce3e0");
+  roadEdge.addColorStop(.52, "#c2cdca");
+  roadEdge.addColorStop(.78, "#d3dcda");
+  roadEdge.addColorStop(1, "#f6f8f7");
+  context.strokeStyle = roadEdge;
+  context.lineWidth = 69;
+  context.stroke(track);
+  context.strokeStyle = "#d6dfdc";
+  context.lineWidth = 59;
+  context.stroke(track);
+  context.strokeStyle = "rgba(255,255,255,.34)";
+  context.lineWidth = 53;
+  context.stroke(track);
+  context.strokeStyle = "rgba(255,255,255,.9)";
+  context.lineWidth = 2.5;
+  context.stroke(track);
+  context.strokeStyle = "rgba(112, 134, 128, .37)";
+  context.lineWidth = 1.5;
   context.setLineDash([10, 12]);
   context.stroke(track);
   context.setLineDash([]);
   context.restore();
 
   context.save();
-  context.fillStyle = "#1df4c1";
-  context.shadowColor = "#1df4c1";
-  context.shadowBlur = 16;
+  context.fillStyle = "#14b98a";
+  context.shadowColor = "rgba(20,185,138,.35)";
+  context.shadowBlur = 12;
   if (points.length) context.fillRect(clamp(points[0].x) * WIDTH - 3, clamp(points[0].y) * HEIGHT - 22, 6, 44);
   context.restore();
 
@@ -157,14 +185,14 @@ function drawTrack(
     }
     context.save();
     context.beginPath();
-    context.arc(x, y, driver.id === selectedDriverId ? 10 : 7, 0, Math.PI * 2);
-    context.fillStyle = driver.color;
-    context.shadowColor = driver.color;
-    context.shadowBlur = driver.id === selectedDriverId ? 26 : 14;
+    context.arc(x, y, driver.id === selectedDriverId ? 9 : 6.5, 0, Math.PI * 2);
+    context.fillStyle = driver.id === selectedDriverId ? "#0caf80" : "#697674";
+    context.shadowColor = driver.id === selectedDriverId ? "rgba(12,175,128,.55)" : "rgba(28,45,43,.23)";
+    context.shadowBlur = driver.id === selectedDriverId ? 22 : 9;
     context.fill();
     context.shadowBlur = 0;
-    context.strokeStyle = "rgba(8, 13, 17, 0.9)";
-    context.lineWidth = 2;
+    context.strokeStyle = "rgba(255,255,255,.94)";
+    context.lineWidth = 2.5;
     context.stroke();
     context.restore();
   }

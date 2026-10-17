@@ -3,8 +3,11 @@ dist/
 .venv/
 __pycache__/
 *.py[cod]
+
+.grid_prix/
+.omx/
+.projects/
+.createos.json
 .env
 .env.*
 !.env.example
-.projects/vault/
-.projects/cache/

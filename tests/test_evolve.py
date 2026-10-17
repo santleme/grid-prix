@@ -1,18 +1,22 @@
 import json
 import os
+import tempfile
 import threading
 import unittest
 import urllib.error
 import urllib.request
 from io import BytesIO
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-from grid_prix.evolve import EvolutionHandler, run_evolution_job
+from grid_prix.evolve import EvolutionHandler, readiness, run_evolution_job
 from grid_prix.policy_evolution import (
     CandidateScore,
     CreateOSSandboxClient,
     GeneratedPolicy,
+    InferenceUsage,
+    ModelAccessDenied,
     MissingModelCredentials,
     ModelGenerationError,
     PolicyGeneration,
@@ -44,6 +48,25 @@ def frames(count=12):
 
 
 class EvolutionApiTests(unittest.TestCase):
+    def test_readiness_accepts_stripe_projects_createos_key(self):
+        with patch.dict(
+            os.environ,
+            {
+                "CREATEOS_PROJECT_API_KEY": "project-key",
+                "GROQ_API_KEY": "model-key",
+            },
+            clear=True,
+        ):
+            with patch(
+                "grid_prix.evolve.importlib.util.find_spec", return_value=object()
+            ):
+                status = readiness()
+
+        self.assertTrue(status["available"])
+        self.assertEqual(status["missing"], [])
+        self.assertEqual(status["provider"], "groq")
+        self.assertEqual(status["model"], "openai/gpt-oss-20b")
+
     def test_destroy_waits_for_sandbox_reclamation(self):
         sandbox = SimpleNamespace(destroy=Mock(), wait_until_destroyed=Mock())
         CreateOSSandboxClient.destroy(sandbox)
@@ -64,7 +87,7 @@ class EvolutionApiTests(unittest.TestCase):
                 ) as response:
                     status = json.loads(response.read())
                 self.assertFalse(status["available"])
-                self.assertIn("OPENAI_API_KEY", status["missing"])
+                self.assertIn("GROQ_API_KEY or OPENAI_API_KEY + OPENAI_MODEL", status["missing"])
                 foreign_origin = urllib.request.Request(
                     f"{base_url}/api/status", headers={"Origin": "https://example.com"}
                 )
@@ -81,7 +104,7 @@ class EvolutionApiTests(unittest.TestCase):
                     urllib.request.urlopen(request)
                 self.assertEqual(error.exception.code, 503)
                 payload = json.loads(error.exception.read())
-                self.assertIn("OPENAI_API_KEY", payload["error"])
+                self.assertIn("GROQ_API_KEY", payload["error"])
                 self.assertNotIn("source", payload)
         finally:
             server.shutdown()
@@ -181,48 +204,154 @@ class EvolutionApiTests(unittest.TestCase):
             0.25,
         )
 
-    def test_job_returns_only_sandbox_scored_source_and_metric(self):
+    def test_job_keeps_twenty_driver_policies_independent_and_reuses_one_sandbox(self):
         class FakeSandboxClient:
+            instances = []
+
+            def __init__(self, **_kwargs):
+                self.sandbox = SimpleNamespace(id="sandbox-1")
+                self.created = 0
+                self.destroyed = 0
+                self.sources = []
+                FakeSandboxClient.instances.append(self)
+
             def __enter__(self):
                 return self
 
             def __exit__(self, *_):
                 return None
 
-        training = [{"id": "d", "tick": 1}]
-        validation = [{"id": "d", "tick": 2}]
-        generated = PolicyGeneration(
-            "analysis", [GeneratedPolicy("candidate", "source")]
-        )
-        baseline = CandidateScore("baseline", 0.4, 0.5)
-        candidate = CandidateScore("source", 0.6, 0.7)
-        with (
-            patch("grid_prix.evolve.readiness", return_value={"available": True}),
-            patch(
-                "grid_prix.evolve.trace_transition_dataset",
-                return_value=(training + validation, [0.1, 0.2]),
-            ),
-            patch(
-                "grid_prix.evolve.split_training_validation",
-                return_value=(training, [0.1], validation, [0.2]),
-            ),
-            patch("grid_prix.evolve.generate_llm_candidates", return_value=generated),
-            patch(
-                "grid_prix.evolve.CreateOSSandboxClient",
-                return_value=FakeSandboxClient(),
-            ),
-            patch(
-                "grid_prix.evolve.score_policy", side_effect=[baseline, candidate]
-            ) as scorer,
-        ):
-            result = run_evolution_job(
-                {"seed": 99, "race": [{"place": 1}], "telemetry": frames()}
+            def create(self):
+                self.created += 1
+                return self.sandbox
+
+            def run(self, sandbox, source, observations):
+                self.assert_sandbox(sandbox)
+                self.sources.append(source)
+                return SimpleNamespace(
+                    actions=[{"steering": 0.0, "throttle": 1.0} for _ in observations],
+                    sandbox_id="sandbox-1",
+                    exec_ms=1.0,
+                )
+
+            def assert_sandbox(self, sandbox):
+                if sandbox is not self.sandbox:
+                    raise AssertionError("must reuse one sandbox handle")
+
+            def destroy(self, sandbox):
+                self.assert_sandbox(sandbox)
+                self.destroyed += 1
+
+        drivers = [{"id": f"driver-{index:02}", "name": f"Driver {index:02}"} for index in range(20)]
+        samples = [({"id": driver["id"], "tick": tick}, 0.0) for driver in drivers for tick in range(10)]
+
+        def generate(_observations, _race, **kwargs):
+            driver_id = kwargs["agent_id"]
+            usage = InferenceUsage("groq", "openai/gpt-oss-20b", 100, 50, 150, 1)
+            if driver_id == "driver-00" and not kwargs.get("repair_source"):
+                return PolicyGeneration(
+                    f"analysis for {driver_id}",
+                    [GeneratedPolicy("broken", "def choose_move(state): return {")],
+                    "groq", "openai/gpt-oss-20b", usage,
+                )
+            if kwargs.get("repair_source"):
+                self.assertIn("return {", kwargs["repair_source"])
+                self.assertEqual(kwargs["repair_error"], "Policy source is not valid Python")
+            return PolicyGeneration(
+                f"analysis for {driver_id}",
+                [GeneratedPolicy(f"candidate {driver_id}", f"# {driver_id}\ndef choose_move(state): return {{'steering': 0.0, 'throttle': 1.0}}")],
+                "groq", "openai/gpt-oss-20b", usage,
             )
-        self.assertEqual(scorer.call_count, 2)
-        self.assertEqual(result["status"], "succeeded")
-        self.assertEqual(result["source"], "source")
-        self.assertEqual(result["beforeScore"], 50)
-        self.assertEqual(result["afterScore"], 70)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with (
+                patch(
+                    "grid_prix.evolve.POLICY_HISTORY_PATH",
+                    Path(temp_dir) / "policies.json",
+                ),
+                patch(
+                    "grid_prix.evolve.readiness",
+                    return_value={
+                        "available": True,
+                        "provider": "groq",
+                        "model": "openai/gpt-oss-20b",
+                    },
+                ),
+                patch(
+                    "grid_prix.evolve.trace_transition_dataset",
+                    return_value=(
+                        [item for item, _ in samples],
+                        [label for _, label in samples],
+                    ),
+                ),
+                patch(
+                    "grid_prix.evolve.split_training_validation",
+                    side_effect=lambda obs, labels, seed: (
+                        obs[:8], labels[:8], obs[8:], labels[8:]
+                    ),
+                ),
+                patch(
+                    "grid_prix.evolve.generate_llm_candidates",
+                    side_effect=generate,
+                ) as generator,
+                patch("grid_prix.evolve.CreateOSSandboxClient", FakeSandboxClient),
+            ):
+                result = run_evolution_job({"seed": 99, "race": drivers, "telemetry": frames()})
+
+        client = FakeSandboxClient.instances[-1]
+        self.assertEqual(generator.call_count, 21)
+        self.assertEqual(client.created, 1)
+        self.assertEqual(client.destroyed, 1)
+        self.assertEqual(len(set(client.sources[::2])), 20)
+        self.assertEqual(result["status"], "rejected")
+        self.assertEqual(len(result["agents"]), 20)
+        self.assertEqual(len({agent["driverId"] for agent in result["agents"]}), 20)
+        self.assertEqual(result["usage"]["totalTokens"], 3_150)
+        self.assertEqual(result["usage"]["requests"], 21)
+        repaired_agent = next(agent for agent in result["agents"] if agent["driverId"] == "driver-00")
+        self.assertEqual(repaired_agent["usage"]["requests"], 2)
+        self.assertTrue(any(item.get("failure") == "SyntaxError" for item in repaired_agent["history"]))
+        self.assertFalse(any(source == "def choose_move(state): return {" for source in client.sources))
+        self.assertEqual(result["sandboxExecutions"], 40)
+        self.assertTrue(all(len(agent["history"]) == (3 if agent["driverId"] == "driver-00" else 2)
+                            for agent in result["agents"]))
+
+    def test_provider_access_denial_stops_further_calls_without_creating_sandbox(self):
+        class FakeSandboxClient:
+            created = 0
+
+            def __init__(self, **_kwargs):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return None
+
+            def create(self):
+                self.created += 1
+                raise AssertionError("no sandbox should be created without a candidate")
+
+        drivers = [{"id": f"driver-{index:02}", "name": f"Driver {index:02}"} for index in range(20)]
+        observations = [{"id": driver["id"], "tick": tick} for driver in drivers for tick in range(10)]
+        labels = [0.0] * len(observations)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with (
+                patch("grid_prix.evolve.POLICY_HISTORY_PATH", Path(temp_dir) / "policies.json"),
+                patch("grid_prix.evolve.readiness", return_value={"available": True, "provider": "groq", "model": "openai/gpt-oss-20b"}),
+                patch("grid_prix.evolve.trace_transition_dataset", return_value=(observations, labels)),
+                patch("grid_prix.evolve.split_training_validation", side_effect=lambda obs, vals, _seed: (obs[:8], vals[:8], obs[8:], vals[8:])),
+                patch("grid_prix.evolve.CreateOSSandboxClient", FakeSandboxClient),
+                patch("grid_prix.evolve.generate_llm_candidates", side_effect=ModelAccessDenied("Groq access denied")) as generate,
+            ):
+                result = run_evolution_job({"seed": 99, "race": drivers, "telemetry": frames()})
+
+        self.assertEqual(generate.call_count, 1)
+        self.assertEqual(FakeSandboxClient.created, 0)
+        self.assertEqual(result["status"], "error")
+        self.assertEqual(result["agents"][0]["status"], "failed")
+        self.assertTrue(all(agent["status"] == "skipped" for agent in result["agents"][1:]))
 
     def test_sdk_create_locks_outbound_egress(self):
         class SDKValue:

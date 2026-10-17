@@ -7,6 +7,16 @@ evolution service that generates Python candidates, executes them in real
 CreateOS Sandboxes, and adopts a candidate only when it beats the baseline on
 held-out telemetry.
 
+## Screenshots
+
+| Desktop | Mobile |
+| --- | --- |
+| ![GRID PRIX desktop race view](artifacts/screenshots/grid-prix-desktop.png) | ![GRID PRIX mobile race view](artifacts/screenshots/grid-prix-mobile.png) |
+
+The UI is a local deterministic race; it is not a live Groq or Sandbox run.
+The recorded seed-2026 evolution results are identified separately in the
+interface and submission notes.
+
 ## Run the demo
 
 Requirements: Node.js 20+, Python 3.10+, and npm.
@@ -23,22 +33,31 @@ leaderboard, telemetry, replay, team economy, and upgrades work without API
 credentials. The LLM/Sandbox evolution control stays unavailable until its
 server-side credentials are configured.
 
-To enable real policy evolution, set these environment variables in the shell
-running the backend (never commit or paste secret values into source or chat):
+To enable real policy evolution, configure Groq in the ignored `.env` (Groq is
+the default provider; never commit or paste secrets into source or chat):
 
 ```sh
-export OPENAI_API_KEY='…'
-export OPENAI_MODEL='your-compatible-chat-model'
-export CREATEOS_API_KEY='…'
-# Optional OpenAI-compatible endpoint and local API bearer token:
-export OPENAI_BASE_URL='https://api.openai.com/v1'
-export GRID_PRIX_EVOLVE_TOKEN='…'
+GROQ_API_KEY=…
+# Optional; defaults to openai/gpt-oss-20b and https://api.groq.com/openai/v1
+GROQ_MODEL=openai/gpt-oss-20b
+GROQ_BASE_URL=https://api.groq.com/openai/v1
+# Optional local API bearer token:
+GRID_PRIX_EVOLVE_TOKEN=…
 ```
 
-If you configured these through Stripe Projects, run
-`stripe projects env --pull` after setup instead of exporting them manually. GRID PRIX loads the
-ignored local `.env` on the Python backend and reads only the optional proxy
-token in the Vite server config.
+OpenAI remains an optional fallback: if `GROQ_API_KEY` is absent, set both
+`OPENAI_API_KEY` and `OPENAI_MODEL` (and optionally `OPENAI_BASE_URL`). Use free
+Groq quota or confirm any applicable charge before a real inference run. If
+CreateOS is configured through Stripe Projects, run `stripe projects env --pull`.
+GRID PRIX reads its generated `CREATEOS_PROJECT_API_KEY` directly; the Sandbox
+SDK uses its documented API endpoint by default. The ignored `.env` is loaded
+by Python; Vite reads only the optional proxy token server-side.
+
+Each evolution run requests a policy independently for each of the 20 drivers,
+sequentially applies a conservative Groq token/RPM budget, then benchmarks
+baselines and candidates in one reused CreateOS Sandbox. Per-driver code
+history and cumulative inference usage are stored in ignored
+`.grid_prix/driver-policies.json`.
 
 Start the backend in one terminal and Vite in another:
 
@@ -64,3 +83,9 @@ npm run test:python
 
 Live LLM/CreateOS calls require valid credentials and are intentionally not
 simulated by tests. No paid services are provisioned by the application.
+
+## Hackathon delivery status
+
+This repository contains the race simulator, optional evolution backend, and
+the screenshots above. See [`docs/submission-readiness.md`](docs/submission-readiness.md)
+for verified publication/deployment links and any outstanding delivery steps.

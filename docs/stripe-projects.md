@@ -25,12 +25,14 @@ payments or represent team credits as Stripe balances.
    `.env` file is ignored by Git. The CreateOS integration is documented as a
    free-plan sandbox setup. Do not switch plans or provision paid services
    without explicit approval.
-4. Follow CreateOS's [Stripe Projects integration guide](https://createos.sh/docs/Services/Stripe-Projects.md)
-   to make the sandbox API credential available to the local backend. GRID
-   PRIX also requires `OPENAI_API_KEY` and `OPENAI_MODEL` for actual LLM policy
-   generation; add these through Stripe Projects' interactive variable prompt
-   or configure them in the local ignored `.env`. Never commit or paste secret
-   values into chat.
+4. Follow CreateOS's [Stripe Projects integration guide](https://createos.sh/docs/Services/Stripe-Projects.md).
+   Stripe Projects exports `CREATEOS_PROJECT_API_KEY`, which the backend
+   accepts directly. The Sandbox SDK uses its documented default API endpoint;
+   the similarly named Projects `API_URL` is not the Sandbox endpoint. GRID PRIX
+   defaults to Groq and requires `GROQ_API_KEY`; OpenAI remains an optional
+   fallback requiring `OPENAI_API_KEY` and `OPENAI_MODEL`. Configure keys in
+   the local ignored `.env`; never commit or paste secret values. Groq inference
+   must use free quota unless paid usage is explicitly authorized.
 5. Start the policy service and UI as described in the
    [installation guide](../README.md#run-the-demo). `GET /api/evolve/status`
    reports missing configuration without contacting providers.
