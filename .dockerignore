@@ -12,3 +12,6 @@ tests/
 .agents/
 .claude/
 .cursor/
+AGENTS.md
+CLAUDE.md
+.cursorignore
