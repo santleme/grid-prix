@@ -147,7 +147,10 @@ export function racingPolicy(driver, target, _tick, opponents = []) {
   // Presets predate the explicit overtake tuning field, so risk is the
   // deterministic fallback for how aggressively a driver changes its line.
   const passOffset = passSide * (strategy.overtake ?? strategy.risk) * passUrgency * 10;
-  const lateralBias = strategy.laneBias * 5 + passOffset;
+  // Presets need a meaningful spread across a crowded 20-car field. A tiny
+  // visual-scale offset keeps everyone on one line and creates persistent
+  // pileups; this changes only the policy's chosen line, not collision physics.
+  const lateralBias = strategy.laneBias * 75 + passOffset;
   const lineXWithBias = target.x - Math.sin(segmentAngle) * lateralBias;
   const lineYWithBias = target.y + Math.cos(segmentAngle) * lateralBias;
   const desired = Math.atan2(lineYWithBias - driver.y, lineXWithBias - driver.x);

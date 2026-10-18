@@ -1,6 +1,6 @@
 # GRID PRIX — Hackathon Submission Readiness
 
-**Last checked:** October 17, 2026, 20:23 BRT (23:23 UTC)
+**Last checked:** October 17, 2026, 21:42 BRT (October 18, 00:42 UTC)
 
 This page distinguishes verified repository evidence from platform actions that
 have not completed. Historical experiment data is not live activity.
@@ -10,11 +10,13 @@ have not completed. Historical experiment data is not live activity.
 | Item | Verified state |
 | --- | --- |
 | Public source repository | [github.com/santleme/grid-prix](https://github.com/santleme/grid-prix) — GitHub API verified `public`; default branch `master`. |
-| CreateOS application URL | [production-grid-prix-live.tyzo.nodeops.app](https://production-grid-prix-live.tyzo.nodeops.app) — CreateOS CLI marked deployment `306a8a93-7b60-403a-838a-e3e9eb3f5450` as deployed and promoted it to Production, but repeated live HTTPS checks of `/` and `/api/evolve/status` returned **HTTP 503 (nginx)** at 2026-10-17 23:23 UTC. This is not a working/verified public app URL; do not submit it as live. |
+| Latest CreateOS deployment | CreateOS CLI reported upload/deploy success for [`dep-8260dda2-94c8-4c0a-a186-5aeef24dcba5`](https://dep-8260dda2-94c8-4c0a-a186-5aeef24dcba5.tyzo.nodeops.app). An earlier HTTPS check returned **HTTP 403 / Cloudflare error 1010**; the latest check timed out. This is not verified as a working app. CLI status/log checks are currently blocked by DNS resolution for `api-createos.nodeops.network`. |
+| Production alias | [production-grid-prix-live.tyzo.nodeops.app](https://production-grid-prix-live.tyzo.nodeops.app) — the last known check returned **HTTP 503 (nginx)** before the latest upload deployment. It is unverified whether this alias points at the new deployment. Do not submit as a working public app URL. |
 | Stripe Projects | The read-only `stripe projects status --json` response reports project `grid-prix`, the CreateOS provider linked and complete, and both `createos-plan` and `createos-project` as Free and complete. Credential values were redacted by the CLI and were not copied here. |
 | Screenshot evidence | [Desktop](../artifacts/screenshots/grid-prix-desktop.png), [mobile](../artifacts/screenshots/grid-prix-mobile.png), and [race view](../artifacts/screenshots/grid-prix-race-live.png). These are local UI captures, not remote deployment or AI execution evidence. |
 
-The deployment URL exists but currently returns 503. Production backend
+The latest upload deployment URL has returned 403 and timed out on a later
+check. Production backend
 reachability, deployment health, and hosted responsive behavior are therefore
 **not verified**. The environment has only the non-secret
 `GRID_PRIX_PUBLIC_READ_ONLY=1` setting; Groq/CreateOS provider secrets were
@@ -54,6 +56,16 @@ finishing position. Held-out observations are reserved from candidate
 generation, and a candidate is kept only when its held-out score is strictly
 above its baseline.
 
+## Collision-avoidance policy update (local verification)
+
+The deterministic default policy now spreads drivers farther apart when
+choosing a racing line. This changes policy steering only; the circuit,
+waypoints, collision physics, and AI evolution/evaluation algorithm remain
+unchanged. On seed 2026, the regression run recorded **15,547 collision
+events instead of 36,275** in the prior build, and all 20 drivers finished.
+The updated run took 5,999 ticks versus 5,026 previously, so this is evidence
+of fewer collisions, **not** faster race performance. Collisions still occur.
+
 ## Two-and-a-half-minute demo outline
 
 Use the local commands in the [README](../README.md). Keep `.env` and
@@ -87,7 +99,9 @@ These tasks are not performed or asserted complete by this repository audit:
 The public source repository is delivered. A CreateOS upload project and
 Production environment were created on the authenticated Free account, and
 CreateOS reported successful builds/deployments. However, the public endpoint
-returned HTTP 503 and the runtime-log endpoint had no application logs. The
+previously returned HTTP 503; the latest deployment URL returned Cloudflare
+HTTP 403 / error 1010 and later timed out. Its runtime status/log check cannot currently be
+reached because of DNS resolution failure. The
 direct shell resolver also fails for the CreateOS API hostname; a constrained
 local HTTPS tunnel was used to complete CLI requests. The Stripe Projects
 integration separately confirms the Free Sandbox resource. No paid service

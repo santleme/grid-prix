@@ -27,6 +27,10 @@ test('seed 2026 completes all laps with deterministic collisions active', () => 
   assert.equal(first.results.length, DRIVER_COUNT);
   assert.ok(first.results.every((result) => result.finishTick !== null && result.laps === first.laps));
   assert.ok(first.events.some((event) => event.type === 'collision'), 'collision response remains enabled');
+  assert.ok(
+    first.events.filter((event) => event.type === 'collision').length < 20_000,
+    'the seeded field should avoid persistent pileups while retaining collision response',
+  );
   assert.deepEqual(first.results, second.results);
 });
 
