@@ -24,9 +24,14 @@ function Championship() {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/evolve/status")
+    let readinessTimer: number | undefined;
+    const checkEvolutionAvailability = () => fetch("/api/evolve/status")
       .then((response) => response.ok ? response.json() : Promise.reject(new Error(`Evolution API status ${response.status}`)))
       .then((status) => {
+        if (status.available && readinessTimer !== undefined) {
+          window.clearInterval(readinessTimer);
+          readinessTimer = undefined;
+        }
         if (active) setEvolution((current) => ({
           ...current,
           available: status.available === true,
@@ -36,6 +41,11 @@ function Championship() {
       .catch(() => {
         if (active) setEvolution((current) => ({ ...current, available: false, summary: "Start the local evolution service and configure LLM + CreateOS credentials." }));
       });
+    // The UI can be opened before the separately started Python service. Keep
+    // checking its cheap readiness endpoint so the evolve action enables as
+    // soon as that service comes online, without requiring a page reload.
+    readinessTimer = window.setInterval(checkEvolutionAvailability, 2_000);
+    checkEvolutionAvailability();
     fetch("/api/evolve/history")
       .then((response) => response.ok ? response.json() : Promise.reject(new Error(`Evolution history ${response.status}`)))
       .then((history) => {
@@ -44,7 +54,7 @@ function Championship() {
         }
       })
       .catch(() => { /* Saved policy history is optional until the local API is running. */ });
-    return () => { active = false; };
+    return () => { active = false; if (readinessTimer !== undefined) window.clearInterval(readinessTimer); };
   }, []);
 
   useEffect(() => {
